@@ -1,0 +1,7 @@
+node_modules
+bin
+docker-compose.yaml
+
+coverage
+
+.env
