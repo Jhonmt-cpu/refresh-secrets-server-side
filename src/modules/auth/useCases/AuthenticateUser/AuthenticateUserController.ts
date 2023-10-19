@@ -1,16 +1,23 @@
-import { Request, Response } from 'express';
 import { AuthenticateUserUseCase } from './AuthenticateUserUseCase';
 import { container } from 'tsyringe';
+import { AuthenticateUserDTO } from '../../dtos/IAuthenticateUserDTO';
+import { AuthenticateUserResponseDTO } from '../../dtos/IAuthenticateUserResponseDTO';
 
 class AuthenticateUserController {
-  async handle(request: Request, response: Response): Promise<Response> {
-    const { email, password } = request.body;
-
+  async handle({
+    email,
+    password,
+    sessionId,
+  }: AuthenticateUserDTO): Promise<AuthenticateUserResponseDTO> {
     const authenticateUserUseCase = container.resolve(AuthenticateUserUseCase);
 
-    const token = await authenticateUserUseCase.execute({ email, password });
+    const token = await authenticateUserUseCase.execute({
+      email,
+      password,
+      sessionId,
+    });
 
-    return response.status(200).json(token);
+    return token;
   }
 }
 

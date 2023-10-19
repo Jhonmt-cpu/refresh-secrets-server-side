@@ -1,5 +1,10 @@
-interface IGenerateTokenProvider {
-  generateToken(user_id: number): string;
+interface IGenerateToken {
+  userId: number;
+  sessionId: string;
 }
 
-export { IGenerateTokenProvider };
+interface IGenerateTokenProvider {
+  generateToken({ userId, sessionId }: IGenerateToken): Promise<string>;
+}
+
+export { IGenerateTokenProvider, IGenerateToken };

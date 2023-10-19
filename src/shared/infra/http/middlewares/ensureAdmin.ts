@@ -16,7 +16,7 @@ export async function ensureAdmin(
 
   const userId = request.user.id;
 
-  const user = await usersRepository.findById(Number(userId));
+  const user = await usersRepository.findById(userId);
 
   if (!user) {
     throw new AppError('Resource not allowed', 403);

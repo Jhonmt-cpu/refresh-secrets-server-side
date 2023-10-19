@@ -4,10 +4,7 @@ import Joi from 'joi';
 import { CreateUserController } from '../../../../modules/users/useCases/CreateUser/CreateUserController';
 import { GetUserController } from '../../../../modules/users/useCases/GetUser/GetUserController';
 import { AuthenticateUserController } from '../../../../modules/auth/useCases/AuthenticateUser/AuthenticateUserController';
-import { RefreshTokenController } from '../../../../modules/auth/useCases/RefreshToken/RefreshTokenController';
-import { SynchronizeCacheController } from '../../../../modules/auth/useCases/SynchronizeCache/SynchronizeCacheController';
-import { ensureAuthenticated } from '../middlewares/ensureAuthenticated';
-import { ensureAdmin } from '../middlewares/ensureAdmin';
+import { EnsureAuthenticated } from '../middlewares/ensureAuthenticated';
 import { DeleteUserController } from '../../../../modules/users/useCases/DeleteUser/DeleteUserController';
 
 const router = Router();
@@ -16,8 +13,8 @@ const createUserController = new CreateUserController();
 const getUserController = new GetUserController();
 const deleteUserController = new DeleteUserController();
 const authenticateUserController = new AuthenticateUserController();
-const refreshAccessTokenController = new RefreshTokenController();
-const synchronizeCacheController = new SynchronizeCacheController();
+
+const ensureAuthenticated = new EnsureAuthenticated();
 
 router.post(
   '/users',
@@ -31,7 +28,7 @@ router.post(
   createUserController.handle,
 );
 
-router.get('/users', ensureAuthenticated, getUserController.handle);
+router.get('/users', ensureAuthenticated.handle, getUserController.handle);
 
 router.delete(
   '/users/:user_id',
@@ -40,7 +37,7 @@ router.delete(
       user_id: Joi.number().required(),
     },
   }),
-  ensureAuthenticated,
+  ensureAuthenticated.handle,
   deleteUserController.handle,
 );
 
@@ -53,23 +50,6 @@ router.post(
     },
   }),
   authenticateUserController.handle,
-);
-
-router.post(
-  '/refresh',
-  celebrate({
-    [Segments.BODY]: {
-      refresh_token: Joi.string().required(),
-    },
-  }),
-  refreshAccessTokenController.handle,
-);
-
-router.post(
-  '/synchronize-cache',
-  ensureAuthenticated,
-  ensureAdmin,
-  synchronizeCacheController.handle,
 );
 
 router.get('/', (request, response) => {

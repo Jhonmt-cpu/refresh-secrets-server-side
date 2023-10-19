@@ -1,10 +1,12 @@
 import express, { NextFunction, Request, Response } from 'express';
 import { errors } from 'celebrate';
-import { router } from './routes';
+
 import { AppError } from '../../errors/AppError';
 import rateLimiter from './middlewares/rateLimiter';
 
 import '../../container';
+
+import { router } from './routes';
 
 const app = express();
 

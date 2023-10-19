@@ -9,7 +9,7 @@ class GetUserController {
 
     const getUserUseCase = container.resolve(GetUserUseCase);
 
-    const userFound = await getUserUseCase.execute(Number(user.id));
+    const userFound = await getUserUseCase.execute(user.id);
 
     return response.status(200).json(instanceToPlain(userFound));
   }
