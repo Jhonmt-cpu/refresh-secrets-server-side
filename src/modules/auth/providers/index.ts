@@ -3,6 +3,8 @@ import { GenerateTokenProvider } from './GenerateTokenProvider/GenerateTokenProv
 import { IGenerateTokenProvider } from './GenerateTokenProvider/IGenerateTokenProvider';
 import { IEncryptAndDecryptProvider } from './EncryptAndDecryptProvider/IEncryptAndDecryptProvider';
 import { EncryptAndDecryptProvider } from './EncryptAndDecryptProvider/EncryptAndDecryptProvider';
+import { IGenerateCustomLoginTokenProvider } from './GenereateCustomLoginTokenProvider/IGenerateCustomLoginTokenProvider';
+import { GenerateCustomLoginTokenProvider } from './GenereateCustomLoginTokenProvider/GenerateCustomLoginTokenProvider';
 
 container.registerSingleton<IEncryptAndDecryptProvider>(
   'EncryptAndDecryptProvider',
@@ -12,4 +14,9 @@ container.registerSingleton<IEncryptAndDecryptProvider>(
 container.registerSingleton<IGenerateTokenProvider>(
   'GenerateTokenProvider',
   GenerateTokenProvider,
+);
+
+container.registerSingleton<IGenerateCustomLoginTokenProvider>(
+  'GenerateCustomLoginTokenProvider',
+  GenerateCustomLoginTokenProvider,
 );

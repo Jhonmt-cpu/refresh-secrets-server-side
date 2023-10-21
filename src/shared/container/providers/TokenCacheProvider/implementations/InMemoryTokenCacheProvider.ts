@@ -80,6 +80,24 @@ class InMemoryTokenCacheProvider implements ITokenCacheProvider {
       this.cache.delete(key);
     });
   }
+
+  async tokenCacheGetAllByPrefix(prefix: string): Promise<string[]> {
+    const keys = Array.from(this.cache.keys());
+
+    const keysToGet = keys.filter((key) => key.startsWith(prefix));
+
+    return keysToGet;
+  }
+
+  async tokenCacheDeleteAllBySuffix(suffix: string): Promise<void> {
+    const keys = Array.from(this.cache.keys());
+
+    const keysToDelete = keys.filter((key) => key.endsWith(suffix));
+
+    keysToDelete.forEach((key) => {
+      this.cache.delete(key);
+    });
+  }
 }
 
 export { InMemoryTokenCacheProvider };

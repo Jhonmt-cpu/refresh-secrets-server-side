@@ -6,6 +6,8 @@ import { AuthenticateUserController } from '../../../modules/auth/useCases/Authe
 import { AppError } from '../../errors/AppError';
 import { RedisTokenCacheProvider } from '../../container/providers/TokenCacheProvider/implementations/RedisTokenCacheProvider';
 import { ITokenCacheProvider } from '../../container/providers/TokenCacheProvider/ITokenCacheProvider';
+import { LoginStatus } from '../../../modules/auth/dtos/IAuthenticateUserResponseDTO';
+import { LoginByCustomTokenController } from '../../../modules/auth/useCases/LoginByCustomToken/LoginByCustomTokenController';
 
 const tokenCacheProvider: ITokenCacheProvider = new RedisTokenCacheProvider();
 
@@ -47,7 +49,11 @@ io.on('connection', (socket: Socket) => {
         sessionId: socket.id,
       });
 
-      socket.emit('login', response);
+      if (response.status === LoginStatus.custom_token) {
+        socket.emit('login_by_custom_token', response);
+      } else {
+        socket.emit('login', response);
+      }
     } catch (e) {
       if (e instanceof AppError) {
         return socket.emit('login', {
@@ -63,8 +69,47 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
+  socket.on('login_by_custom_token', async (data) => {
+    const schema = Joi.object({
+      customLoginToken: Joi.string().required(),
+    });
+
+    const { error } = schema.validate(data);
+
+    if (error) {
+      return socket.emit('login_by_custom_token', {
+        error: error.details[0].message,
+      });
+    }
+
+    const { customLoginToken } = data;
+
+    try {
+      const loginByCustomTokenController = new LoginByCustomTokenController();
+
+      const response = await loginByCustomTokenController.handle({
+        customLoginToken,
+        sessionId: socket.id,
+      });
+
+      socket.emit('login', response);
+    } catch (e) {
+      if (e instanceof AppError) {
+        return socket.emit('login_by_custom_token', {
+          error: e.message,
+        });
+      }
+
+      console.log(e);
+
+      return socket.emit('login_by_custom_token', {
+        error: 'Internal server error',
+      });
+    }
+  });
+
   socket.on('disconnect', () => {
-    tokenCacheProvider.tokenCacheDel(socket.id);
+    tokenCacheProvider.tokenCacheDeleteAllBySuffix(socket.id);
   });
 });
 

@@ -1,16 +1,16 @@
-import { compare } from 'bcryptjs';
+import * as jwt from 'jsonwebtoken';
 import { inject, injectable } from 'tsyringe';
 import { AppError } from '../../../../shared/errors/AppError';
 import { IUsersRepository } from '../../../users/repositories/IUsersRepository';
 import { IGenerateTokenProvider } from '../../providers/GenerateTokenProvider/IGenerateTokenProvider';
 import { ITokenCacheProvider } from '../../../../shared/container/providers/TokenCacheProvider/ITokenCacheProvider';
-import { AuthenticateUserDTO } from '../../dtos/IAuthenticateUserDTO';
 import auth from '../../../../config/auth';
-import { IGenerateCustomLoginTokenProvider } from '../../providers/GenereateCustomLoginTokenProvider/IGenerateCustomLoginTokenProvider';
+import { IEncryptAndDecryptProvider } from '../../providers/EncryptAndDecryptProvider/IEncryptAndDecryptProvider';
+import { LoginByCustomTokenDTO } from '../../dtos/iLoginByCustomTokenDTO';
 import { LoginStatus } from '../../dtos/IAuthenticateUserResponseDTO';
 
 @injectable()
-class AuthenticateUserUseCase {
+class LoginByCustomTokenUseCase {
   constructor(
     @inject('GenerateTokenProvider')
     private generateTokenProvider: IGenerateTokenProvider,
@@ -18,41 +18,42 @@ class AuthenticateUserUseCase {
     private usersRepository: IUsersRepository,
     @inject('TokenCacheProvider')
     private tokenCacheProvider: ITokenCacheProvider,
-    @inject('GenerateCustomLoginTokenProvider')
-    private generateCustomLoginTokenProvider: IGenerateCustomLoginTokenProvider,
+    @inject('EncryptAndDecryptProvider')
+    private encryptAndDecryptProvider: IEncryptAndDecryptProvider,
   ) {}
 
-  async execute({ email, password, sessionId }: AuthenticateUserDTO) {
-    const user = await this.usersRepository.findByEmail(email);
+  async execute({ customLoginToken, sessionId }: LoginByCustomTokenDTO) {
+    let tokenVerified: jwt.UserIDJwtPayload;
 
-    if (!user) {
-      throw new AppError('Email or password incorrect.');
+    try {
+      tokenVerified = <jwt.UserIDJwtPayload>(
+        jwt.verify(customLoginToken, auth.custom_login_token.jwtSecret)
+      );
+    } catch (error) {
+      throw new AppError('Invalid token.');
     }
 
-    const passwordMatch = await compare(password, user.password);
-
-    if (!passwordMatch) {
-      throw new AppError('Email or password incorrect.');
-    }
-
-    const sessions = await this.tokenCacheProvider.tokenCacheGetAllByPrefix(
-      user.user_id.toString(),
+    const subject = await this.encryptAndDecryptProvider.decrypt(
+      tokenVerified.sub as string,
     );
 
-    if (sessions.length > 0) {
-      const customTokenLogin =
-        await this.generateCustomLoginTokenProvider.generateToken({
-          userId: user.user_id,
-          sessionId: sessionId,
-        });
+    const tokenSecretData = JSON.parse(subject);
 
-      return {
-        name: user.name,
-        email: user.email,
-        token: customTokenLogin,
-        status: LoginStatus.custom_token,
-      };
+    const { sessionId: tokenSessionId } = tokenSecretData;
+
+    if (sessionId !== tokenSessionId) {
+      throw new AppError('Invalid token.');
     }
+
+    const user = await this.usersRepository.findById(tokenVerified.userId);
+
+    if (!user) {
+      throw new AppError('Invalid user,');
+    }
+
+    await this.tokenCacheProvider.tokenCacheDeleteAllByPrefix(
+      user.user_id.toString(),
+    );
 
     const token = await this.generateTokenProvider.generateToken({
       userId: user.user_id,
@@ -76,4 +77,4 @@ class AuthenticateUserUseCase {
   }
 }
 
-export { AuthenticateUserUseCase };
+export { LoginByCustomTokenUseCase };

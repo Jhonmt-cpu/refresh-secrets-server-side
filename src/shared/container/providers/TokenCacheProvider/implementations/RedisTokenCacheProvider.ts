@@ -62,6 +62,24 @@ class RedisTokenCacheProvider implements ITokenCacheProvider {
 
     await pipeline.exec();
   }
+
+  async tokenCacheGetAllByPrefix(prefix: string): Promise<string[]> {
+    const keys = await this.redisClient.keys(`${prefix}:*`);
+
+    return keys;
+  }
+
+  async tokenCacheDeleteAllBySuffix(suffix: string): Promise<void> {
+    const keys = await this.redisClient.keys(`*:${suffix}`);
+
+    const pipeline = this.redisClient.pipeline();
+
+    keys.forEach((key) => {
+      pipeline.del(key);
+    });
+
+    await pipeline.exec();
+  }
 }
 
 export { RedisTokenCacheProvider };

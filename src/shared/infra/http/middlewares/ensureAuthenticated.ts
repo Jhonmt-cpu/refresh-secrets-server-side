@@ -61,21 +61,18 @@ class EnsureAuthenticated {
 
       const { sessionId } = tokenSecretData;
 
-      const userId = await EnsureAuthenticated.tokenCacheProvider.tokenCacheGet(
-        sessionId,
-      );
+      const tokenExists =
+        await EnsureAuthenticated.tokenCacheProvider.tokenCacheGet(
+          `${tokenVerified.userId}:${sessionId}`,
+        );
 
-      if (!userId) {
+      if (!tokenExists) {
         throw new AppError('Token session not found', 401);
       }
 
-      if (Number(userId) !== tokenVerified.userId) {
-        throw new AppError('User id not match', 401);
-      }
-
       EnsureAuthenticated.tokenCacheProvider.tokenCacheSet({
-        key: sessionId,
-        value: userId,
+        key: `${tokenVerified.userId}:${sessionId}`,
+        value: tokenExists,
         expireTime: Number(auth.jwt.expiresInMinutes) * 60,
       });
 

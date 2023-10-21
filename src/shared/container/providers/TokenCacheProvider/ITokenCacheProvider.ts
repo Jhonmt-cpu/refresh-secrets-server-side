@@ -15,6 +15,8 @@ interface ITokenCacheProvider {
   tokenCacheFlushAll(): Promise<void>;
   tokenCacheMultipleSet(refreshTokens: ICacheSet[]): Promise<void>;
   tokenCacheDeleteAllByPrefix(prefix: string): Promise<void>;
+  tokenCacheGetAllByPrefix(prefix: string): Promise<string[]>;
+  tokenCacheDeleteAllBySuffix(suffix: string): Promise<void>;
 }
 
 export { ITokenCacheProvider, ICacheSet };
