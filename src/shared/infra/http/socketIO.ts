@@ -8,6 +8,7 @@ import { RedisTokenCacheProvider } from '../../container/providers/TokenCachePro
 import { ITokenCacheProvider } from '../../container/providers/TokenCacheProvider/ITokenCacheProvider';
 import { LoginStatus } from '../../../modules/auth/dtos/IAuthenticateUserResponseDTO';
 import { LoginByCustomTokenController } from '../../../modules/auth/useCases/LoginByCustomToken/LoginByCustomTokenController';
+import rateLimiterSocketIO from './middlewares/socketIORateLimiter';
 
 const tokenCacheProvider: ITokenCacheProvider = new RedisTokenCacheProvider();
 
@@ -19,28 +20,30 @@ const io = new Server(httpServer, {
   },
 });
 
-io.sockets.sockets.forEach((socket) => {
-  console.log(socket.id);
-});
-
 io.on('connection', (socket: Socket) => {
   socket.on('login', async (data) => {
-    const schema = Joi.object({
-      email: Joi.string().email().required(),
-      password: Joi.string().required().min(8),
-    });
-
-    const { error } = schema.validate(data);
-
-    if (error) {
-      return socket.emit('login', {
-        error: error.details[0].message,
-      });
-    }
-
-    const { email, password } = data;
-
     try {
+      //#region Validation
+
+      await rateLimiterSocketIO(socket.id, 'login');
+
+      const schema = Joi.object({
+        email: Joi.string().email().required(),
+        password: Joi.string().required().min(8),
+      });
+
+      const { error } = schema.validate(data);
+
+      if (error) {
+        return socket.emit('login', {
+          error: error.details[0].message,
+        });
+      }
+
+      //#endregion
+
+      const { email, password } = data;
+
       const authenticateUserController = new AuthenticateUserController();
 
       const response = await authenticateUserController.handle({
@@ -70,21 +73,23 @@ io.on('connection', (socket: Socket) => {
   });
 
   socket.on('login_by_custom_token', async (data) => {
-    const schema = Joi.object({
-      customLoginToken: Joi.string().required(),
-    });
-
-    const { error } = schema.validate(data);
-
-    if (error) {
-      return socket.emit('login_by_custom_token', {
-        error: error.details[0].message,
-      });
-    }
-
-    const { customLoginToken } = data;
-
     try {
+      await rateLimiterSocketIO(socket.id, 'login_by_custom_token');
+
+      const schema = Joi.object({
+        customLoginToken: Joi.string().required(),
+      });
+
+      const { error } = schema.validate(data);
+
+      if (error) {
+        return socket.emit('login_by_custom_token', {
+          error: error.details[0].message,
+        });
+      }
+
+      const { customLoginToken } = data;
+
       const loginByCustomTokenController = new LoginByCustomTokenController();
 
       const response = await loginByCustomTokenController.handle({

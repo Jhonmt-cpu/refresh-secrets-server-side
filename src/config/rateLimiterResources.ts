@@ -4,18 +4,13 @@ interface RateLimiterResources {
   };
 }
 
+interface RateLimiterSocketIOResources {
+  [key: string]: number;
+}
+
 const rateLimiterResourcesTest: RateLimiterResources = {
   '/': {
     GET: 100,
-  },
-  '/login': {
-    POST: 100,
-  },
-  '/refresh': {
-    POST: 100,
-  },
-  '/synchronize-cache': {
-    POST: 100,
   },
   '/users': {
     POST: 100,
@@ -27,19 +22,20 @@ const rateLimiterResourcesProd: RateLimiterResources = {
   '/': {
     GET: 4,
   },
-  '/login': {
-    POST: 3,
-  },
-  '/refresh': {
-    POST: 10,
-  },
-  '/synchronize-cache': {
-    POST: 1,
-  },
   '/users': {
     POST: 3,
     GET: 5,
   },
+};
+
+const rateLimiterSocketIOResourcesProd: RateLimiterSocketIOResources = {
+  login: 4,
+  login_by_custom_token: 4,
+};
+
+const rateLimiterSocketIOResourcesTest: RateLimiterSocketIOResources = {
+  login: 100,
+  login_by_custom_token: 100,
 };
 
 const rateLimiterResources =
@@ -47,4 +43,9 @@ const rateLimiterResources =
     ? rateLimiterResourcesTest
     : rateLimiterResourcesProd;
 
-export default rateLimiterResources;
+const rateLimiterSocketIOResources =
+  process.env.NODE_ENV === 'test'
+    ? rateLimiterSocketIOResourcesTest
+    : rateLimiterSocketIOResourcesProd;
+
+export { rateLimiterResources, rateLimiterSocketIOResources };

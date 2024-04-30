@@ -1,21 +1,17 @@
-import { Request, Response, NextFunction } from 'express';
 import {
   redisRateLimiterGet,
   redisRateLimiterSet,
 } from '../../../../utils/redis-rate-limiter';
-import { rateLimiterResources } from '../../../../config/rateLimiterResources';
+import { rateLimiterSocketIOResources } from '../../../../config/rateLimiterResources';
 import { AppError } from '../../../errors/AppError';
 
-export default async function rateLimiter(
-  request: Request,
-  response: Response,
-  next: NextFunction,
+export default async function rateLimiterSocketIO(
+  sessionId: string,
+  event: string,
 ): Promise<void> {
   try {
-    const { ip, url, method } = request;
-
-    const key = `${ip}:${url}:${method}}`;
-
+    const key = `${sessionId}:${event}`;
+    //#region
     const currentRequests = Number((await redisRateLimiterGet(key)) || 0) + 1;
 
     await redisRateLimiterSet({
@@ -23,13 +19,13 @@ export default async function rateLimiter(
       value: currentRequests.toString(),
       expireTime: 60,
     });
-
+    //#endregion
     let maxRequestsPerMinute = 5;
 
-    const routeOptions = rateLimiterResources[url];
+    const eventOptions = rateLimiterSocketIOResources[event];
 
-    if (routeOptions) {
-      const maxRequestsForRoute = routeOptions[method];
+    if (eventOptions) {
+      const maxRequestsForRoute = eventOptions;
 
       if (maxRequestsForRoute) {
         maxRequestsPerMinute = maxRequestsForRoute;
@@ -39,8 +35,6 @@ export default async function rateLimiter(
     if (currentRequests > maxRequestsPerMinute) {
       throw new AppError('Too many requests', 429);
     }
-
-    return next();
   } catch (err) {
     throw new AppError('Too many requests', 429);
   }
